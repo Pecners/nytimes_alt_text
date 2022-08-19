@@ -5,8 +5,11 @@ library(glue)
 library(MetBrewer)
 library(showtext)
 
+# load in tweet data
+# this data file created in load_and_clean_data.R
 all_tweets <- read_rds("data/more_data.rda")
 
+# final df created for plotting
 fin <- all_tweets |> 
   filter(type == "photo" & acc != "@bbcbreaking") |> 
   arrange(created_at) |> 
@@ -17,12 +20,17 @@ fin <- all_tweets |>
 
 accounts <- unique(fin$acc)
 
+# set up formatting: colors, font
+
 c <- met.brewer("Hiroshige")
 font_add_google("Vollkorn", "v")
 showtext_auto()
 showtext_opts(dpi = 300)
 
+# walk over accounts to create and save plot for each
 walk(accounts, function(a) {
+  
+  # create df for text annotations on the right
   max_labs <- fin |> 
     filter(created_at == max(created_at) & acc == a) |>
     mutate(ind = row_number()) |> 
@@ -31,14 +39,16 @@ walk(accounts, function(a) {
     mutate(lab = case_when(group2 == "cum_yes" ~ glue("{value} With\nalt text"),
                            TRUE ~ glue("{value} Without\nalt text")))
   
+  # filter for iteration's account
   this_a <- fin |> 
     filter(acc == a)
   
+  # set breaking
   m <- max(c(this_a$cum_yes, this_a$cum_no))
   if (m > 100) {
-    l <- round(m/100) * 100
+    l <- round(m/100, 1) * 100
   } else {
-    l <- round(m/10) * 10
+    l <- round(m/10, 1) * 10
   }
   
 
@@ -51,7 +61,8 @@ walk(accounts, function(a) {
               size = 4) +
     scale_color_manual(values = c("grey70", c[1])) +
     scale_y_continuous(breaks = c(0, l/2, l),
-                       labels = c(0, l/2, glue("{l} tweets"))) +
+                       labels = c(0, l/2, glue("{l} tweets")),
+                       limits = c(0, l)) +
     scale_x_datetime(breaks = c(min(this_a$created_at), max(this_a$created_at)),
                      date_labels = "%b %d, %Y") +
     theme_minimal() +
