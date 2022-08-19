@@ -4,7 +4,7 @@ I noticed that the NYTimes main Twitter account ([@nytimes](https://twitter.com/
 
 This repo holds the code pull the tweets and conduct this analysis in R. If you wish to reproduce this, you will have to authenticate yourself, and I didn't include my authentication here.
 
-UPDATE: You'll notice that I've included analysis of tweets from more accounts. I expanded this analysis to provide comparisons with other accounts, plus I improved the script so that rate limits would be less of an issue.
+UPDATE: You'll notice that I've included analysis of tweets from more accounts. I expanded this analysis to provide comparisons with other accounts, plus I improved the script so that rate limits would be less of an issue. 
 
 ![NYTimes tweets from July 6, 2022 to August 4, 2022 show a pattern of neglecting to add alt text with images.](plots/time_series.png)
 

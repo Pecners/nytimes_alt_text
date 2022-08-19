@@ -62,7 +62,7 @@ walk(accounts, function(a) {
     scale_color_manual(values = c("grey70", c[1])) +
     scale_y_continuous(breaks = c(0, l/2, l),
                        labels = c(0, l/2, glue("{l} tweets")),
-                       limits = c(0, l + 10)) +
+                       limits = c(0, l + .1 * l)) +
     scale_x_datetime(breaks = c(min(this_a$created_at), max(this_a$created_at)),
                      date_labels = "%b %d, %Y") +
     theme_minimal() +
