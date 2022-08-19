@@ -1,55 +1,60 @@
+library(tidyverse)
 library(rtweet)
 library(lubridate)
+library(glue)
+library(jsonify)
+library(jsonlite)
 
-nytimes_tweets <- get_timeline(user = "@nytimes", n = 10000, retryonratelimit = TRUE)
+accounts <- sprintf("@%s",
+                    c("nasa",
+                      "cnn",
+                      "natgeo",
+                      "washingtonpost",
+                      "wired",
+                      "lemondefr",
+                      "wsj"))
 
-nytweets_limited <- nytimes_tweets |>
-  mutate(created_at = ymd_hms(created_at, tz = "America/New_York")) %>%
-  filter(date(created_at) > date(min(created_at)) &
-           date(created_at) < date(max(created_at)))
-# For some reason, get_timeline isn't properly returning alt text,
-# but lookup_tweets is returning correct alt text
 
-image_alt_status <- map_df(1:nrow(nytweets_limited), function(i) {
-  pic <- nytweets_limited$entities[[i]]$media |>
-    pull(id)
-  
-  vid <- str_detect(nytweets_limited$entities[[i]]$media$expanded_url,
-                    "video")
-  
-  if (!is.na(pic) & !vid) {
-    tmp <- lookup_tweets(nytweets_limited[i, "id_str"])
-    med <- tmp$entities[[1]]$media
-    map_df(1:nrow(med), function(j) {
-      df <- tibble(
-        i_ind = i,
-        med_ind = j,
-        created_at = nytweets_limited[[i, "created_at"]],
-        id_str = nytweets_limited[[i, "id_str"]],
-        has_alt = ifelse(!is.na(med[[j, "ext_alt_text"]]),
-                         TRUE, FALSE),
-        t_source = tmp$source
-      )
-    })
-  }
+tweets <- map(accounts, function(x) {
+  cat(glue("{x}"), "\n")
+  get_timeline(user = x, n = 3250, retryonratelimit = TRUE, parse = FALSE,
+               include_ext_alt_text = "true")
 })
 
-df <- image_alt_status |>
-  arrange(created_at) |>
-  mutate(group = case_when(is.na(has_alt) ~ "none",
-                           has_alt ~ "pos",
-                           TRUE ~ "neg"),
-         cum_yes = cumsum(group == "pos"),
-         cum_no = cumsum(group == "neg"))
+cleaned <- map2_df(tweets, accounts, function(x, y) {
+  cat(glue("{y}"), "\n")
+  acc <- y
+  tmp <- x[[1]]
+  map_df(tmp, function(z) {
+    tmp1 <- z$extended_entities$media
+    created_at <- z$created_at
+    map2_df(tmp1, created_at, function(i, j) {
+      if (!is.null(i)) {
+        i |> 
+          mutate(acc = acc,
+                 cre_at = j)
+      }
+    })
+  })
+})
 
-all_data <- list(df = df,
-                 image_alt_status = image_alt_status,
-                 nytweets_limited = nytweets_limited,
-                 nytimes_tweets = nytimes_tweets)
+format_date <- function(x, format = "%a %b %d %T %z %Y") {
+  locale <- Sys.getlocale("LC_TIME")
+  on.exit(Sys.setlocale("LC_TIME", locale), add = TRUE)
+  Sys.setlocale("LC_TIME", "C") 
+  as.POSIXct(x, format = format)
+}
 
-saveRDS(all_data, "data/all_data.rda")
+only_data <- cleaned |> 
+  select(created_at = cre_at,
+         acc,
+         id_str,
+         expanded_url,
+         type,
+         ext_alt_text) |> 
+  mutate(created_at = format_date(created_at))
 
 
-
+saveRDS(only_data, "data/more_data.rda")
 
 
